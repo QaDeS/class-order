@@ -17,7 +17,7 @@ let classProps: ClassProps = {}
 
 function unescapeClass(cls) {
     let result = cls
-    Array.from("![]#").forEach((c) => result = result.replace(`\\${c}`, c))
+    Array.from("![]#/").forEach((c) => result = result.replace(`\\${c}`, c))
     return result
 }
 
