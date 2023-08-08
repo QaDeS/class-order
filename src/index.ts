@@ -1,3 +1,5 @@
+import Layout from '../examples/svelte/src/routes/+layout.svelte'
+
 type OldStyle = Array<string> & Record<string, string>
 type OldRule = {
     selectorText: string
@@ -21,12 +23,19 @@ function unescapeClass(cls : string) {
     return result
 }
 
-if( globalThis.document ) init() // TODO make available in ssr
-function init() {
+
+init() // TODO make available in ssr
+async function init(document : Document = globalThis.document) {
+    console.log("init", !!document)
+    if( !document ) return
+    //console.log(await (document ? Promise.resolve('Alright') : waitForDOM()))
+
     const oldStyleSheets = document.styleSheets as any as OldStyleSheets
+    console.log(document, document.styleSheets)
 
     const newClassProps : ClassProps = {}
     Array.from(oldStyleSheets).forEach((ss) => {
+        console.log(ss)
         Array.from(ss.rules).forEach((r) => {
             const props = Array.from(r.style ?? []).filter((k) => !k.startsWith('--')).sort()
             const selectors = (r.selectorText ?? '').split(',').map((s) => s.split('\\:')).filter((s) => s.filter((sc) => sc.startsWith('.')).length) // TODO allow elem.cls selectors
@@ -84,12 +93,20 @@ export function merge(str: string) {
 }
 
 export function classOrder(el: AugmentedElement) {
-    el.className = merge(el.className)
-    el._setAttribute = el.setAttribute
-    el.setAttribute = (k, v) => {
-        if (k != 'class') return el._setAttribute!(k, v)
-        el._setAttribute!(k, merge(v))
+    console.log(`classOrder ${globalThis.document} ${el.ownerDocument}`)
+
+    const perform = async () => {
+        if(!globalThis.document) await init(el.ownerDocument)
+
+        el.className = merge(el.className)
+        el._setAttribute = el.setAttribute
+        el.setAttribute = async (k, v) => {
+            if (k != 'class') return el._setAttribute!(k, v)
+            el._setAttribute!(k, await merge(v))
+        }    
     }
+    perform()
+
     return {
         destroy() {
             el.setAttribute = el._setAttribute!

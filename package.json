@@ -7,6 +7,12 @@
     "dev": "concurrently 'npm:svelte:dev' 'npm:react:dev'",
     "svelte:dev": "cd examples/svelte && npm run dev",
     "react:dev": "cd examples/react && npm run dev",
+    "build:examples": "concurrently 'npm:svelte:build' 'npm:react:build'",
+    "svelte:build": "cd examples/svelte && npm run build",
+    "react:build": "cd examples/react && npm run build",
+    "preview": "concurrently 'npm:svelte:preview' 'npm:react:preview'",
+    "svelte:preview": "cd examples/svelte && npm run preview",
+    "react:preview": "cd examples/react && npm run preview",
     "build": "TODO"
   },
   "devDependencies": {
@@ -16,5 +22,7 @@
     "tslib": "^2.4.1",
     "typescript": "^4.9.4"
   },
-  "dependencies": {}
+  "peerDependencies": {
+    "@happy-dom/global-registrator": "^10.9.0"
+  }
 }
