@@ -15,6 +15,12 @@ type AugmentedElement = HTMLElement & {
 type ClassProps = Record<string, string[]>
 let classProps: ClassProps = {}
 
+function unescapeClass(cls) {
+    let result = cls
+    Array.from("![]#").forEach((c) => result = result.replace(`\\${c}`, c))
+    return result
+}
+
 if( globalThis.document ) init() // TODO make available in ssr
 function init() {
     const oldStyleSheets = document.styleSheets as any as OldStyleSheets
@@ -34,8 +40,9 @@ function init() {
                     // TODO also handle scoped styles in the form of .cls.scopeHash
                     return className
                 }).join(':')
-                const unescaped = cls.replace('\\[', '[').replace('\\]', ']').replace('\\#', '#')
+                const unescaped = unescapeClass(cls)
                 const properties = props.map((p) => [...scopes.sort(), p].join('.'))
+                // TODO support !important
                 console.log(unescaped, scopes, properties)
                 newClassProps[unescaped] = properties
             })
@@ -51,7 +58,7 @@ export function merge(str: string) {
 
     let cls = str.split(' ')
         .filter(Boolean) // ignore excessive whitespaces
-    
+        
     const result = []
     const definedProps : string[] = []
     let c: string
@@ -63,7 +70,9 @@ export function merge(str: string) {
         }
 
         const newProps = props.filter((p) => !definedProps.includes(p))
-        if( !newProps.length ) continue
+        if( !newProps.length &&
+            !c.startsWith('!') // TODO go for important properties instead
+        ) continue
 
         result.unshift(c)
         definedProps.push(...newProps)
