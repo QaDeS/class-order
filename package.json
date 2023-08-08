@@ -1,0 +1,19 @@
+{
+  "name": "class-order",
+  "version": "0.0.1",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently 'npm:svelte:dev' 'npm:react:dev'",
+    "svelte:dev": "cd examples/svelte && npm run dev",
+    "react:dev": "cd examples/react && npm run dev",
+    "build": "TODO"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "tslib": "^2.4.1",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+  }
+}
