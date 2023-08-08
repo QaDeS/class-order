@@ -15,7 +15,7 @@ type AugmentedElement = HTMLElement & {
 type ClassProps = Record<string, string[]>
 let classProps: ClassProps = {}
 
-function unescapeClass(cls) {
+function unescapeClass(cls : string) {
     let result = cls
     Array.from("![]#/").forEach((c) => result = result.replace(`\\${c}`, c))
     return result
@@ -32,7 +32,8 @@ function init() {
             const selectors = (r.selectorText ?? '').split(',').map((s) => s.split('\\:')).filter((s) => s.filter((sc) => sc.startsWith('.')).length) // TODO allow elem.cls selectors
             selectors.forEach((selector) => {
                 const clss = selector.map((sc) => sc.slice(sc.startsWith('.') ? 1 : 0).split(':'))
-                console.log("clss", clss)
+                //console.log("clss", clss)
+                
                 let scopes : string[] = []
                 const cls = clss.map((c) => {
                     const className = c.shift()
@@ -42,8 +43,10 @@ function init() {
                 }).join(':')
                 const unescaped = unescapeClass(cls)
                 const properties = props.map((p) => [...scopes.sort(), p].join('.'))
+                
                 // TODO support !important
-                console.log(unescaped, scopes, properties)
+                //console.log(unescaped, scopes, properties)
+                
                 newClassProps[unescaped] = properties
             })
         })
