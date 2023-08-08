@@ -10,10 +10,11 @@
     "build": "TODO"
   },
   "devDependencies": {
+    "@happy-dom/global-registrator": "^10.9.0",
+    "bun-types": "^0.7.3",
     "concurrently": "^8.2.0",
     "tslib": "^2.4.1",
     "typescript": "^4.9.4"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }

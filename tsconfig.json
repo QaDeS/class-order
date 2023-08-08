@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"types": ["bun-types"],
 		"allowJs": true,
 		"checkJs": true,
 		"esModuleInterop": true,
