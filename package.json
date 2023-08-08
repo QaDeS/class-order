@@ -1,6 +1,7 @@
 {
   "name": "class-order",
   "version": "0.0.1",
+  "license": "MIT",
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
