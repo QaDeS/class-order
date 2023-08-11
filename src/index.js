@@ -69,6 +69,8 @@ export function init () {
     classProps = newClassProps
 }
 
+// TODO allow for arrays for twMerge compatability
+// and so user can mix and match between merge and forceMerge
 /**
  * @param {string} str 
  * @returns {string}
@@ -82,6 +84,7 @@ function merge (str) {
  * @returns {string}
  */
 function forceMerge (str) {
+    // TODO find better name?
     return mergeInternal(str, true)
 }
 
@@ -90,6 +93,7 @@ function forceMerge (str) {
  * @returns {any} the generated class
  */
 function defineClass () {
+    // TODO keep instance around for performance?
     const name = `class_order_${Math.floor(Math.random() * 999999)}` // TODO use hash instead?
     const style = document.createElement('style')
     style.innerHTML = `.${name} {}`
@@ -141,7 +145,7 @@ function mergeInternal (str, override, el = undefined) {
                     let e = el
                     if (!el) {
                         console.warn("No Element, estimating style for", c)
-                        e = document.createElement('div')
+                        e = document.createElement('div') // TODO keep instance around for performance
                         document.body.appendChild(e)
                     }
 
@@ -169,12 +173,17 @@ function mergeInternal (str, override, el = undefined) {
             }
         } else {
             if (props.importantProperties.length == props.properties.length - newProps.length) {
-                // inly important new properties
+                // only important new properties
                 registerClass()
             } else if (props.importantProperties.length && (props.importantProperties.length == overriding.length)) {
                 // no important Conflicts
                 registerClass()
+            } else if(props.importantProperties.length > overriding.length) {
+                // TODO check if possible precedence conflict (did I take order into account properly?)
+                registerClass()
             } else {
+                console.log(props.importantProperties)
+                console.log(overriding)
                 console.warn("Deleting", c)
             }
         }
@@ -190,6 +199,7 @@ function mergeInternal (str, override, el = undefined) {
  * @returns 
  */
 function classOrder (el, opts = { override: false }) {
+    // TODO allow using twMerge directly
     const { override } = opts
     el.className = mergeInternal(el.className, override, el)
     el._setAttribute = el.setAttribute
