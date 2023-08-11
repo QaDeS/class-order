@@ -9,20 +9,26 @@
     "./tailwind-merge": "./src/tailwind-merge.js"
   },
   "types": "src/types.d.ts",
+  "author": {
+    "name": "Michael Klaus",
+    "email": "mkit.de@gmail.com",
+    "url": "https://github.com/QaDeS"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/QaDeS/class-order.git"
+  },
   "scripts": {
     "dev": "concurrently 'npm:svelte:dev' 'npm:react:dev'",
     "svelte:dev": "cd examples/svelte && npm run dev",
     "react:dev": "cd examples/react && npm run dev",
-    "build": "TODO"
+    "test": "bun test"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^10.9.0",
     "bun-types": "^0.7.3",
     "concurrently": "^8.2.0",
-    "puppeteer": "^21.0.2",
-    "tailwind-merge": "^1.14.0",
-    "tslib": "^2.4.1",
-    "typescript": "^4.9.4"
+    "tailwind-merge": "^1.14.0"
   },
   "peerDependencies": {
     "tailwind-merge": ">=0.1.0"

@@ -20,8 +20,9 @@
  * @property {boolean?} override
  */
 
-let /** @type ClassProps} */ classProps = {}
+const dbg = await import('process').then((m) => m.env.DEV ? ((...args) => console.debug(...args)) : () => {})
 
+let /** @type ClassProps} */ classProps = {}
 /**
  * 
  * @param {string} cls 
@@ -65,7 +66,7 @@ export function init () {
     })
 
     classProps = newClassProps
-    console.log(classProps)
+    dbg(classProps)
 }
 
 // TODO allow for arrays for twMerge compatability
@@ -108,7 +109,7 @@ function defineClass () {
  */
 function mergeInternal (str, override, el = undefined) {
     if (import.meta.env && import.meta.env.DEV) init()
-    console.log("\n", str, override)
+    dbg("\n", str, override)
 
     let cls = str.split(' ')
         .filter(Boolean) // ignore excessive whitespaces
@@ -123,7 +124,7 @@ function mergeInternal (str, override, el = undefined) {
             console.error("Unknown class", c)
             continue
         }
-        console.debug("class", c, props)
+        dbg("class", c, props)
 
         const newProps = props.properties.filter((p) => !definedProps[p])
         const overriding = props.importantProperties.filter((p) => !importantProps.includes(p))
@@ -136,14 +137,14 @@ function mergeInternal (str, override, el = undefined) {
 
         if (newProps.length == props.properties.length) {
             // no conflicts
-            console.debug("00", newProps, props)
+            dbg("00", newProps, props)
             registerClass()
         } else if (override) {
             if (props.importantProperties.length > newProps.length) {
-                console.debug("01")
+                dbg("01")
  
                 if (newProps.length) {
-                    console.debug("02")
+                    dbg("02")
 
                     const overridden = [...new Set(props.importantProperties.map((p) => definedProps[p]).filter(Boolean))]
 
@@ -171,7 +172,7 @@ function mergeInternal (str, override, el = undefined) {
 
                     console.warn("Overriding", c, "with", name)
                 } else {
-                    console.debug("03")
+                    dbg("03")
                     const overridden = [...new Set(props.properties.map((p) => definedProps[p]))]
                     console.warn("Overriding", ...overridden, "with", c)
                 }
@@ -180,24 +181,24 @@ function mergeInternal (str, override, el = undefined) {
         } else {
             if(props.importantProperties.length && !overriding.length) {
                 // all overridden -> delete
-                console.debug("11")
+                dbg("11")
             } else if (props.importantProperties.length == props.properties.length - newProps.length) {
                 // only important new properties
-                console.debug("12")
+                dbg("12")
                 registerClass()
             } else if(props.importantProperties.length > overriding.length) {
                 // TODO check if possible precedence conflict (did I take order into account properly?)
-                console.debug("13")
+                dbg("13")
                 registerClass()
             } /*else if(!props.properties.filter((p) => !importantProps.includes(p)).length ) {
                 // FIXME for twMerge compat: leave in unnecessarily
-                console.debug("14")
+                dbg("14")
                 registerClass()
             } */else if(props.properties.filter((p) => !definedProps[p]).length ) {
-                console.debug("15")
+                dbg("15")
                 registerClass()
             } else {
-                console.debug("Deleting", c)
+                dbg("Deleting", c)
             }
         }
     }
