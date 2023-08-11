@@ -17,6 +17,9 @@ devDependencies:
   puppeteer:
     specifier: ^21.0.2
     version: 21.0.2
+  tailwind-merge:
+    specifier: ^1.14.0
+    version: 1.14.0
   tslib:
     specifier: ^2.4.1
     version: 2.6.1
@@ -788,6 +791,10 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       has-flag: 4.0.0
+    dev: true
+
+  /tailwind-merge@1.14.0:
+    resolution: {integrity: sha512-3mFKyCo/MBcgyOTlrY8T7odzZFx+w+qKSMAmdFzRvqBfLlSigU6TZnlFHK0lkMwj9Bj8OYU+9yW9lmGuS0QEnQ==}
     dev: true
 
   /tar-fs@3.0.4:
