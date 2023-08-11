@@ -20,90 +20,117 @@
  * @property {boolean?} override
  */
 
-let dbg = () => {}
-import('process').then((m) => { if(m.env.DEV) dbg = (...args) => console.debug(...args) })
+/**
+ * Debug output, ignore by default and use console.debug if in DEV mode
+ */
+let dbg = (/** @type {any} */...args) => { }
+import('process').then((m) => { if ((import.meta.env && import.meta.env.DEV) || (m.env && m.env.DEV)) dbg = (...args) => console.debug(...args) })
 
 let /** @type ClassProps} */ classProps = {}
+
 /**
- * 
+ * Unescapes a (tailwind) class name.
  * @param {string} cls 
- * @returns 
+ * @returns {string} the unescaped class name
  */
 function unescapeClass (cls) {
-    let result = cls
-    Array.from("![]#/").forEach((c) => result = result.replace(`\\${c}`, c))
-    return result
+    return [..."![]#/"].reduce((result, c) => result.replace(`\\${c}`, c), cls)
 }
 
+/**
+ * Creates a function that scopes property names
+ * @param {string[]} scopes 
+ * @returns 
+ */
+function scopedNameFn(scopes) {
+    /**
+     * Scopes the given property names
+     * @param {string[]} propertyNames
+     * @returns 
+     */
+    return function scopedName(propertyNames) {
+        return propertyNames.map((p) => [...scopes.sort(), p].join('.'))
+    }
+}
+
+// TODO take care of linting errors
 if (globalThis.document) init() // TODO make available in ssr
 export function init () {
     const /** @type ClassProps} */ newClassProps = {}
 
-    const styleSheets = document.styleSheets
-    Array.from(styleSheets).forEach((ss) => {
-        Array.from(ss.cssRules).forEach((r) => {
-            const props = Array.from(r.style ?? [])
-                .filter((k) => !k.startsWith('--')) // exclude variables
-                .sort()
-            const /** @type string[][] */ selectors = (r.selectorText ?? '').split(',').map((s) => s.split('\\:')).filter((s) => s.filter((sc) => sc.startsWith('.')).length) // TODO allow elem.cls selectors
-            selectors.forEach((selector) => {
-                const clss = selector.map((sc) => sc.slice(sc.startsWith('.') ? 1 : 0).split(':'))
-                //console.log("clss", clss)
+    const rules = Array.from(document.styleSheets).map((ss) => Array.from(ss.cssRules)).flat()
+    for (const r of rules) {
+        const props = Array.from(r.style ?? [])
+            .filter((p) => !p.startsWith('--')) // exclude variables
+            .sort()
 
-                let /** @type string[] */ scopes = []
-                const cls = clss.map((c) => {
-                    const className = c.shift()
-                    scopes.push(...c)   // all pseudo classes get turned into scopes
-                    // TODO also handle scoped styles in the form of .cls.scopeHash
-                    return className
-                }).join(':')
-                const unescaped = unescapeClass(cls)
-                const properties = props.map((p) => [...scopes.sort(), p].join('.'))
-                const importantProperties = props.filter((p) => r.style.getPropertyPriority(p) === 'important').map((p) => [...scopes.sort(), p].join('.'))
+        /** @type string[][] */
+        const selectors = (r.selectorText ?? '')
+            .split(',') // split multiple selectors
+            .map((/** @type {string} */ s) => s.split('\\:')) // take care of tailwind conditions
+            .filter((/** @type {string[]} */ s) => s.filter((scomp) => scomp.startsWith('.')).length) // TODO allow elem.cls selectors
 
-                newClassProps[unescaped] = { properties, importantProperties }
-            })
-        })
-    })
+        for (const selector of selectors) {
+            const classSelectors = selector.map((scomp) =>
+                scomp.slice(scomp.startsWith('.') ? 1 : 0)  // cut class indicator
+                    .split(':'))                            // take care of pseudo classes
+
+            /** @type string[] */
+            let scopes = []
+            const cls = classSelectors.map((c) => {
+                const className = c.shift()
+                scopes.push(...c)           // all pseudo classes get turned into scopes
+                // TODO also handle scoped styles in the form of .cls.scopeHash
+                return className
+            }).join(':')
+
+            const scopedNames = scopedNameFn(scopes)
+            const properties = scopedNames(props) // store scoped property names
+            const importantProperties = scopedNames(props.filter((p) => r.style.getPropertyPriority(p) === 'important'))
+
+            const unescaped = unescapeClass(cls)
+            newClassProps[unescaped] = { properties, importantProperties }
+        }
+    }
 
     classProps = newClassProps
     dbg(classProps)
 }
 
-// TODO allow for arrays for twMerge compatability
 // and so user can mix and match between merge and forceMerge
 /**
- * @param {string} str 
+ * @param {string[]} str 
  * @returns {string}
  */
-function merge (str) {
+function merge (...str) {
     return mergeInternal(str, false)
 }
 
 /**
- * @param {string} str 
+ * @param {string[]} str
  * @returns {string}
  */
-function forceMerge (str) {
+function forceMerge (...str) {
     // TODO find better name?
     return mergeInternal(str, true)
 }
 
+let newId = 0
 /**
  * 
  * @returns {any} the generated class
  */
 function defineClass () {
     // TODO keep instance around for performance?
-    const name = `class_order_${Math.floor(Math.random() * 999999)}` // TODO use hash instead?
+    const name = `class_order_${newId++}`
     const style = document.createElement('style')
     style.innerHTML = `.${name} {}`
     document.head.appendChild(style)
-    return {name, style: style.sheet.cssRules[0].style}
+    return { name, style: style.sheet.cssRules[0].style }
 }
 
 /**
- * @param {string} str
+ * @param {string[]} str
  * @param {boolean} override
  * @param {HTMLElement | undefined} el
  * @returns {string}
@@ -112,7 +139,7 @@ function mergeInternal (str, override, el = undefined) {
     if (import.meta.env && import.meta.env.DEV) init()
     dbg("\n", str, override)
 
-    let cls = str.split(' ')
+    let cls = str.join(' ').split(' ')
         .filter(Boolean) // ignore excessive whitespaces
 
     const /** @type {string[]} */ result = []
@@ -143,7 +170,7 @@ function mergeInternal (str, override, el = undefined) {
         } else if (override) {
             if (props.importantProperties.length > newProps.length) {
                 dbg("01")
- 
+
                 if (newProps.length) {
                     dbg("02")
 
@@ -159,11 +186,11 @@ function mergeInternal (str, override, el = undefined) {
                     e.className = result.join(' ')
                     const s = getComputedStyle(e)
 
-                    const {name, style} = defineClass()
+                    const { name, style } = defineClass()
                     props.importantProperties.filter((p) => definedProps[p])
                         .forEach((p) => style.setProperty(p, s.getPropertyValue(p), 'important'))
 
-                    if(!el) document.body.removeChild(e)
+                    if (!el) document.body.removeChild(e)
 
                     // FIXME
                     // overridden.forEach((o) => result.splice(result.indexOf(o)))
@@ -180,14 +207,14 @@ function mergeInternal (str, override, el = undefined) {
 
             }
         } else {
-            if(props.importantProperties.length && !overriding.length) {
+            if (props.importantProperties.length && !overriding.length) {
                 // all overridden -> delete
                 dbg("11")
             } else if (props.importantProperties.length == props.properties.length - newProps.length) {
                 // only important new properties
                 dbg("12")
                 registerClass()
-            } else if(props.importantProperties.length > overriding.length) {
+            } else if (props.importantProperties.length > overriding.length) {
                 // TODO check if possible precedence conflict (did I take order into account properly?)
                 dbg("13")
                 registerClass()
@@ -195,7 +222,7 @@ function mergeInternal (str, override, el = undefined) {
                 // FIXME for twMerge compat: leave in unnecessarily
                 dbg("14")
                 registerClass()
-            } */else if(props.properties.filter((p) => !definedProps[p]).length ) {
+            } */else if (props.properties.filter((p) => !definedProps[p]).length) {
                 dbg("15")
                 registerClass()
             } else {
@@ -213,12 +240,12 @@ function mergeInternal (str, override, el = undefined) {
  * @param {HTMLElement} el
  * @param {ClassOrderOptions} opts
  */
-function classOrder (el, opts = { override: false }) {
+function classOrderInternal (el, opts = { override: false }) {
     // TODO allow applying this to the complete (watched) DOM?
-    const {override} = opts
+    const { override } = opts
     const setAttribute = el.setAttribute.bind(el)
     el.setAttribute = (k, v) => {
-        const val = (k == 'class') ? mergeInternal(v, !!override, el) : v
+        const val = (k == 'class') ? mergeInternal(v.split(','), !!override, el) : v
         return setAttribute(k, val)
     }
     el.setAttribute('class', el.className)
@@ -236,7 +263,16 @@ function classOrder (el, opts = { override: false }) {
  * @param {HTMLElement} el
  */
 function forceClassOrder (el) {
-    return classOrder(el, { override: true })
+    return classOrderInternal(el, { override: true })
+}
+
+/**
+ * A directive that implements lax precedence in the `class` attribute.
+ * 
+ * @param {HTMLElement} el
+ */
+function classOrder (el) {
+    return classOrderInternal(el, { override: false })
 }
 
 export {
