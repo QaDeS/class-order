@@ -23,6 +23,10 @@ async function setup() {
 
         .p-1 {padding: 1px; }
         .\\!p-1 {padding: 1px !important;}
+
+        .a.tag {background-color: blue !important; margin: 1px;}
+        .b.tag {background-color: red;}
+        .c {background-color: greem;}
     `);
     await init()
 }
@@ -31,7 +35,7 @@ function testEqual(cls : string, expected : string = cls) {
     expect(forceMerge(cls)).toEqual(expected)
 }
 
-describe.only("forceMerge", () => {
+describe("forceMerge", () => {
 
     it('removes first mention of same property', async () => {
         await setup()
@@ -63,6 +67,16 @@ describe.only("forceMerge", () => {
 
         testEqual("!p-1 !px-1", "!p-1 !px-1 class_order_1")
         testEqual("!px-1 !p-1", "!p-1")
+    })
+
+    it('handles scoped classes', async () => {
+        await setup()
+
+        testEqual("a b tag", "a b tag class_order_2")
+        testEqual("b a tag", "a tag")
+
+        testEqual("a b c tag", "a b c tag class_order_3") // TODO check
+        testEqual("b a c tag", "a c tag")
     })
 
 })

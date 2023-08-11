@@ -120,16 +120,16 @@ let newId = 0
  * 
  * @returns {any} the generated class
  */
-function defineClass () {
+function defineClass (tags) {
     // TODO keep instance around for performance?
     const name = `class_order_${newId++}`
     const style = document.createElement('style')
-    style.innerHTML = `.${name} {}`
+    style.innerHTML = `.${[name, ...tags].join('.')} {}`
     document.head.appendChild(style)
     return { name, style: style.sheet.cssRules[0].style }
 }
 
-function addClass (el, c, result, props, definedProps) {
+function addClass (el, c, result, props, definedProps, tags) {
     let e = el
     if (!el) {
         console.warn("No Element, estimating style for", c)
@@ -140,7 +140,7 @@ function addClass (el, c, result, props, definedProps) {
     e.className = result.join(' ')
     const s = getComputedStyle(e)
 
-    const { name, style } = defineClass()
+    const { name, style } = defineClass(tags)
     props.filter((p) => definedProps[p])
         .forEach((p) => style.setProperty(p, s.getPropertyValue(p), 'important'))
 
@@ -169,10 +169,21 @@ function mergeInternal (str, override, el = undefined) {
     const /** @type {Record<String, string>} */ definedProps = {}
     const /** @type {string[]} */ importantProps = []
     let /** @type {string} */ c
+    let /** @type {string[]} */ tags = []
     while ((c = cls.pop())) {
-        const props = classProps[c]
-        if (!props) {
-            console.error("Unknown class", c)
+        let props = undefined
+
+        // TODO find better solution
+        const path = [c, ...tags, ...tags] // seems like tags are applied twice under some circumstances
+        while( !(props = classProps[path.join('.')]) ) {
+            if( !path.pop() ) break
+        }
+        const [_, ...usedTags] = path
+
+        if (!props || !props.properties.length) {
+            dbg("Tag class", c)
+            tags.push(c)
+            result.unshift(c)
             continue
         }
         dbg("class", c, props)
@@ -199,7 +210,7 @@ function mergeInternal (str, override, el = undefined) {
 
                     const overridden = [...new Set(props.importantProperties.map((p) => definedProps[p]).filter(Boolean))]
 
-                    const name = addClass(el, c, result, props.importantProperties, definedProps)
+                    const name = addClass(el, c, result, props.importantProperties, definedProps, usedTags)
 
                     registerClass()
 
@@ -215,7 +226,7 @@ function mergeInternal (str, override, el = undefined) {
                     dbg("05")
                     if(props.importantProperties.length) {
                         dbg("06")
-                        const name = addClass(el, c, result, props.importantProperties, definedProps)
+                        const name = addClass(el, c, result, props.importantProperties, definedProps, usedTags)
                     } else {
                         dbg("07", props)
                     }
