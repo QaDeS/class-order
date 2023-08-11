@@ -42,13 +42,13 @@ function unescapeClass (cls) {
  * @param {string[]} scopes 
  * @returns 
  */
-function scopedNameFn(scopes) {
+function scopedNameFn (scopes) {
     /**
      * Scopes the given property names
      * @param {string[]} propertyNames
      * @returns 
      */
-    return function scopedName(propertyNames) {
+    return function scopedName (propertyNames) {
         return propertyNames.map((p) => [...scopes.sort(), p].join('.'))
     }
 }
@@ -129,6 +129,29 @@ function defineClass () {
     return { name, style: style.sheet.cssRules[0].style }
 }
 
+function addClass (el, c, result, props, definedProps) {
+    let e = el
+    if (!el) {
+        console.warn("No Element, estimating style for", c)
+        e = document.createElement('div') // TODO keep instance around for performance
+        document.body.appendChild(e)
+    }
+
+    e.className = result.join(' ')
+    const s = getComputedStyle(e)
+
+    const { name, style } = defineClass()
+    props.filter((p) => definedProps[p])
+        .forEach((p) => style.setProperty(p, s.getPropertyValue(p), 'important'))
+
+    if (!el) document.body.removeChild(e)
+
+    // FIXME
+    // overridden.forEach((o) => result.splice(result.indexOf(o)))
+    result.push(name)
+    return name
+}
+
 /**
  * @param {string[]} str
  * @param {boolean} override
@@ -176,27 +199,9 @@ function mergeInternal (str, override, el = undefined) {
 
                     const overridden = [...new Set(props.importantProperties.map((p) => definedProps[p]).filter(Boolean))]
 
-                    let e = el
-                    if (!el) {
-                        console.warn("No Element, estimating style for", c)
-                        e = document.createElement('div') // TODO keep instance around for performance
-                        document.body.appendChild(e)
-                    }
-
-                    e.className = result.join(' ')
-                    const s = getComputedStyle(e)
-
-                    const { name, style } = defineClass()
-                    props.importantProperties.filter((p) => definedProps[p])
-                        .forEach((p) => style.setProperty(p, s.getPropertyValue(p), 'important'))
-
-                    if (!el) document.body.removeChild(e)
-
-                    // FIXME
-                    // overridden.forEach((o) => result.splice(result.indexOf(o)))
+                    const name = addClass(el, c, result, props.importantProperties, definedProps)
 
                     registerClass()
-                    result.push(name)
 
                     console.warn("Overriding", c, "with", name)
                 } else {
@@ -204,7 +209,18 @@ function mergeInternal (str, override, el = undefined) {
                     const overridden = [...new Set(props.properties.map((p) => definedProps[p]))]
                     console.warn("Overriding", ...overridden, "with", c)
                 }
-
+            } else {
+                dbg("04")
+                if (newProps.length) {
+                    dbg("05")
+                    if(props.importantProperties.length) {
+                        dbg("06")
+                        const name = addClass(el, c, result, props.importantProperties, definedProps)
+                    } else {
+                        dbg("07", props)
+                    }
+                    registerClass()
+                }
             }
         } else {
             if (props.importantProperties.length && !overriding.length) {
