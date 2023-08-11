@@ -14,18 +14,22 @@ async function setup() {
     await setupPage(`
         .bg-blue {background-color: blue;}
         .\!bg-blue {background-color: blue !important;}
+        
         .bg-red {background-color: red;}
         .\!bg-red {background-color: red !important;}
+        
+
         .px-1 {padding-left: 1px; padding-right: 1px;}
         .\!px-1 {padding-left: 1px !important; padding-right: 1px !important;}
+
         .p-1 {padding: 1px; }
         .\!p-1 {padding: 1px !important;}
     `);
     await init()
 }
 
-function testEqual(cls : string) {
-    expect(merge(cls)).toEqual(twMerge(cls))
+function testEqual(cls : string, override : string|undefined = undefined) {
+    expect(merge(cls)).toEqual(override ?? twMerge(cls))
 }
 
 describe("twMerge compat", () => {
@@ -39,27 +43,27 @@ describe("twMerge compat", () => {
         testEqual("!bg-blue bg-red")
         testEqual("!bg-red bg-blue")
 
-        testEqual("bg-blue !bg-red") // twMerge leaves bg-blue in
-        testEqual("bg-red !bg-blue") // twMerge leaves bg-red in
+        testEqual("bg-blue !bg-red", "!bg-red") // twMerge leaves bg-blue in
+        testEqual("bg-red !bg-blue", "!bg-blue") // twMerge leaves bg-red in
 
         testEqual("!bg-blue !bg-red")
-        testEqual("!bg-red !bg-blue") // FIME
+        testEqual("!bg-red !bg-blue")
     })
 
     it('removes first mention of same property', async () => {
         await setup()
 
         testEqual("p-1 px-1")
-        //testEqual("px-1 p-1")
+        testEqual("px-1 p-1")
 
         testEqual("!p-1 px-1")
-        //testEqual("!px-1 p-1")
+        testEqual("!px-1 p-1")
 
         testEqual("p-1 !px-1")
-        //testEqual("px-1 !p-1")
+        testEqual("px-1 !p-1", "!p-1") // twmerge leaves in px-1
 
-        //testEqual("!p-1 !px-1")
-        //testEqual("!px-1 !p-1")
+        testEqual("!p-1 !px-1")
+        testEqual("!px-1 !p-1")
     })
 
 })

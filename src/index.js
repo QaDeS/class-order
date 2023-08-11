@@ -10,16 +10,14 @@
  * 
  * @typedef {OldStyleSheet[]} OldStyleSheets
  * 
- * @typedef {HTMLElement & ElementAugmentation} AugmentedElement
- * 
- * @typedef ElementAugmentation
- * @property {function} _setAttribute // (k: string, v: any)
- * 
  * @typedef Properties
  * @property {string[]} properties
  * @property {string[]} importantProperties
  * 
  * @typedef {Record<string, Properties>} ClassProps
+ * 
+ * @typedef ClassOrderOptions
+ * @property {boolean?} override
  */
 
 let /** @type ClassProps} */ classProps = {}
@@ -175,7 +173,7 @@ function mergeInternal (str, override, el = undefined) {
                 } else {
                     console.debug("03")
                     const overridden = [...new Set(props.properties.map((p) => definedProps[p]))]
-                    console.warn("Override", c, ...overridden)
+                    console.warn("Overriding", ...overridden, "with", c)
                 }
 
             }
@@ -191,49 +189,49 @@ function mergeInternal (str, override, el = undefined) {
                 // TODO check if possible precedence conflict (did I take order into account properly?)
                 console.debug("13")
                 registerClass()
-            } else if(!props.properties.filter((p) => !importantProps.includes(p)).length ) {
+            } /*else if(!props.properties.filter((p) => !importantProps.includes(p)).length ) {
                 // FIXME for twMerge compat: leave in unnecessarily
                 console.debug("14")
                 registerClass()
-            } else if(props.properties.filter((p) => !definedProps[p]).length ) {
+            } */else if(props.properties.filter((p) => !definedProps[p]).length ) {
                 console.debug("15")
                 registerClass()
             } else {
-                console.info("Deleting", c)
+                console.debug("Deleting", c)
             }
         }
     }
 
-    console.log(result.join(' '))
     return result.join(' ')
 }
 
 /**
+ * A directive that implements better precedence in the `class` attribute.
  * 
- * @param {AugmentedElement} el 
- * @returns 
+ * @param {HTMLElement} el
+ * @param {ClassOrderOptions} opts
  */
 function classOrder (el, opts = { override: false }) {
-    // TODO allow using twMerge directly
-    const { override } = opts
-    el.className = mergeInternal(el.className, override, el)
-    el._setAttribute = el.setAttribute
+    // TODO allow applying this to the complete (watched) DOM?
+    const {override} = opts
+    const setAttribute = el.setAttribute.bind(el)
     el.setAttribute = (k, v) => {
-        if (k != 'class') return el._setAttribute(k, v)
-        el._setAttribute(k, mergeInternal(v, override, el))
+        const val = (k == 'class') ? mergeInternal(v, !!override, el) : v
+        return setAttribute(k, val)
     }
+    el.setAttribute('class', el.className)
+
     return {
         destroy () {
-            el.setAttribute = el._setAttribute
-            delete el._setAttribute
+            el.setAttribute = setAttribute
         }
     }
 }
 
 /**
+ * A directive that implements strict precedence in the `class` attribute.
  * 
- * @param {AugmentedElement} el 
- * @returns 
+ * @param {HTMLElement} el
  */
 function forceClassOrder (el) {
     return classOrder(el, { override: true })

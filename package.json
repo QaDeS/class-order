@@ -5,6 +5,7 @@
   "module": "src/index.js",
   "type": "module",
   "exports": {
+    ".": "./src/index.js",
     "./tailwind-merge": "./src/tailwind-merge.js"
   },
   "types": "src/types.d.ts",
