@@ -1,6 +1,6 @@
 {
   "name": "class-order",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "module": "src/index.js",
   "type": "module",
