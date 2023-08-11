@@ -1,12 +1,12 @@
 {
   "name": "class-order",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
-  "module": "src/index.js",
+  "module": "dist/index.js",
   "type": "module",
   "exports": {
-    ".": "./src/index.js",
-    "./tailwind-merge": "./src/tailwind-merge.js"
+    ".": "./dist/index.js",
+    "./tailwind-merge": "./dist/tailwind-merge.js"
   },
   "types": "src/types.d.ts",
   "author": {
@@ -22,7 +22,8 @@
     "dev": "concurrently 'npm:svelte:dev' 'npm:react:dev'",
     "svelte:dev": "cd examples/svelte && npm run dev",
     "react:dev": "cd examples/react && npm run dev",
-    "test": "bun test"
+    "test": "DEV=true bun test",
+    "build": "bun build --minify --outdir=dist src/index.js src/tailwind-merge.js"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^10.9.0",
