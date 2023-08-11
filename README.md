@@ -4,7 +4,6 @@
 
 ## Installation
 
-*WIP: For now, it's best to git clone and then link to `class-order/src/index.ts`*
 You can install the library using npm:
 
 ```sh
@@ -45,11 +44,18 @@ For Svelte applications, you can use the `classOrder` directive provided by the 
 
 `classOrder` ensures that classes are applied in the order they appear within the `class` attribute.
 
+You can also import from `class-order/tailwind-merge` if you just want to have a directive for this battle tested library.
+
+
 ## Why Use `class-order`?
 
 - **Fine-grained Control:** With `class-order`, you can explicitly determine class precedence by the order of classes in the `class` attribute.
 
 - **Drop-in Replacement:** The library is designed to be a seamless replacement for `twMerge` in Tailwind CSS setups and can be easily integrated into existing projects. For a detailed comparison between `class-order` and `tailwind-merge`, check out [vs_twMerge.md](./vs_twMerge.md).
+
+## Experimental Features
+
+You can import `forceMerge`or `forceClassOrder`respectively if you want to completely enforce class precedence in your `class`attribute – this will also override `!important` properties, so your layout might break in multiple ways.
 
 ## Contributing
 

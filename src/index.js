@@ -20,7 +20,8 @@
  * @property {boolean?} override
  */
 
-const dbg = await import('process').then((m) => m.env.DEV ? ((...args) => console.debug(...args)) : () => {})
+let dbg = () => {}
+import('process').then((m) => { if(m.env.DEV) dbg = (...args) => console.debug(...args) })
 
 let /** @type ClassProps} */ classProps = {}
 /**
