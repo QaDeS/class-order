@@ -4,6 +4,9 @@
   "license": "MIT",
   "module": "src/index.js",
   "type": "module",
+  "exports": {
+    "./tailwind-merge": "./src/tailwind-merge.js"
+  },
   "types": "src/types.d.ts",
   "scripts": {
     "dev": "concurrently 'npm:svelte:dev' 'npm:react:dev'",
@@ -19,5 +22,8 @@
     "tailwind-merge": "^1.14.0",
     "tslib": "^2.4.1",
     "typescript": "^4.9.4"
+  },
+  "peerDependencies": {
+    "tailwind-merge": ">=0.1.0"
   }
 }
