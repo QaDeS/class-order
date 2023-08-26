@@ -1,8 +1,6 @@
 /// <reference lib="dom" />
 const dbg = () => {} //console.debug
 
-const DATA_ID = "__coId"
-
 type ConditionFn = () => boolean
 type ConditionalStyle = Record<string, boolean | ConditionFn>
 type ClassName = string | ConditionalStyle | SVGAnimatedString
@@ -203,24 +201,25 @@ function mergeInternal(str: Array<string>, el: HTMLElement | SVGElement | undefi
     return result
 }
 
-function disectClass(cls: ClassNames, ordered: Array<string> = []) {
+function orderClasses(cls: ClassNames, ordered: Array<string> = []) {
     const values: Array<string> = []
 
     function apply(c: ClassNames) {
-        const r = disectClass(c, ordered);
+        const r = orderClasses(c, ordered);
         ordered.push(...r.ordered.filter((o) => !ordered.includes(o)));
         values.push(...r.values)
     }
 
     if (Array.isArray(cls)) {
         cls.forEach(apply)
-    } else if ((cls as SVGAnimatedString).baseVal) {
-        console.log("\n", (cls as SVGAnimatedString).baseVal, "\n", (cls as SVGAnimatedString).animVal)
+    } else if ((cls as SVGAnimatedString).animVal) {
         apply((cls as SVGAnimatedString).animVal)
     } else if (typeof cls === 'string') {
-        cls.split(/\s+/).forEach((c) => {
+        cls.split(/\s+/).forEach((cl) => {
+            const removed = cl.startsWith('^')
+            const c = removed ? cl.slice(1) : cl
             if (!ordered.includes(c)) ordered.push(c)
-            values.push(c)
+            if( !removed ) values.push(c)
         })
     } else {
         // we got an object
@@ -241,16 +240,6 @@ function disectClass(cls: ClassNames, ordered: Array<string> = []) {
 //const elOrder: Record<string, string[]> = {}
 //let lastId = 0
 function getOrdered(el: HTMLElement | SVGElement) {
-    // TODO store in classList
-    /*
-    const coId = el.dataset[DATA_ID]
-    if (coId) return elOrder[coId]
-
-    const newId = (lastId++).toString()
-    el.dataset[DATA_ID] = newId
-    const result: string[] = []
-    elOrder[newId] = result
-    */
    if( el.classList.order ) return el.classList.order
    const result = []
    el.classList.order = result
@@ -258,10 +247,10 @@ function getOrdered(el: HTMLElement | SVGElement) {
 }
 
 let inMerge = false
-function _mergeInternal(str: ClassNames, el: HTMLElement | SVGElement) {
+function merge(str: ClassNames, el: HTMLElement | SVGElement) {
     if( inMerge ) return
     inMerge = true
-    let cls = disectClass(str, getOrdered(el));
+    let cls = orderClasses(str, getOrdered(el));
     el.classList.order = cls.ordered
     const merged = mergeInternal(cls.values, el)
     inMerge = false
@@ -347,6 +336,9 @@ const augmentFns = (el: HTMLElement | SVGElement) => {
 
 function augmentClassList(el: HTMLElement) {
     const classList = el.classList
+    if( 'rawValue' in classList ) return
+    if( el.classList.value ) el.setAttribute('class', el.classList.value);
+
     const [augmented, updateAfter] = augmentFns(el)
 
     const proxy = new Proxy<typeof classList>(classList, {
@@ -372,17 +364,11 @@ function augmentClassList(el: HTMLElement) {
     })
 }
 
-function initElement(el: HTMLElement) {
-    if( el.dataset[DATA_ID] ) return;
-    el.setAttribute('class', el.classList.value)
-    augmentClassList(el);
-}
-
 function hookElement(prototype: HTMLElement | SVGElement) {
     const setAttribute = prototype.setAttribute
     prototype.setAttribute = function (k, v) {
         if (k !== 'class' || !v) return setAttribute.call(this, k, v)
-        const val = _mergeInternal(v, this)
+        const val = merge(v, this)
         setAttribute.call(this, k, val);
     }
     return () => prototype.setAttribute = setAttribute
@@ -392,7 +378,7 @@ function hookPrototype() {
     const htmlDestroy = hookElement(HTMLElement.prototype)
     const svgDestroy = hookElement(SVGElement.prototype)
 
-    forEachElement(initElement)
+    forEachElement(augmentClassList)
 
     return () => {
         destructors.forEach((d) => d?.destroy())
