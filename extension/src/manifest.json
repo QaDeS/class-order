@@ -1,0 +1,27 @@
+{
+    "name": "ClassOrder",
+    "description": "Takes and preserves class precedence from the class(Name) attribute",
+    "version": "0.0.1",
+    "manifest_version": 3,
+    "permissions": [
+      "activeTab"
+    ],
+    "action": {
+      "default_title": "Svelte Extension",
+      "default_icon": "favicon.png",
+      "default_popup": "index.html"
+    },
+    "web_accessible_resources": [
+      {
+        "matches": ["<all_urls>"],
+        "resources": ["content.ts"]
+      }
+    ],
+    "content_scripts": [
+        {
+            "all_frames": true,
+            "matches": ["<all_urls>"],
+            "js": ["contentLoader.js"]
+        }
+    ]
+  }
