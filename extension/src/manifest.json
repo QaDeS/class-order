@@ -21,7 +21,8 @@
         {
             "all_frames": true,
             "matches": ["<all_urls>"],
-            "js": ["contentLoader.js"]
+            "js": ["contentLoader.js"],
+            "run_at": "document_start"
         }
     ]
   }

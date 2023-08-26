@@ -21,7 +21,7 @@ export function importCss (src : string, id : string) {
 
 
 function unescapeClass (cls : string) : string {
-    return [..."![]#/"].reduce((result, c) => result.replace(`\\${c}`, c), cls)
+    return [..."![]#/()<>&.,+*'%?="].reduce((result, c) => result.replaceAll(`\\${c}`, c), cls)
 }
 
 function scopedNameFn (scopes : Array<string>) {
@@ -35,30 +35,35 @@ function styleRule(rule : CSSRule)  : CSSStyleRule | undefined{
     if( rule.type === CSSRule.STYLE_RULE ) return rule
 }
 
-function updateClassProps() {
+function updateClassProps(...styleSheets : Array<CSSStyleSheet>) {
     dbg("INIT")
 
     const /** @type ClassProps} */ newClassProps = {}
-
-    const rules = Array.from(document.styleSheets).map((ss) => Array.from(ss.cssRules)).flat()
+    const sheets = styleSheets.length ? styleSheets : Array.from(document.styleSheets)
+    const rules = sheets.map((ss) => Array.from(ss.cssRules)).flat()
     for (const rule of rules) {
         const r = styleRule(rule)
         if( !r ) continue
 
         const props = Array.from(r.style ?? [])
-            .filter((p) => !p.startsWith('--')) // exclude variables
+            //.filter((p) => !p.startsWith('--')) // exclude variables
             .sort()
 
+            // TODO handle :is(selector)
         /** @type string[][] */
         const selectors = (r.selectorText ?? '')
-            .split(',') // split multiple selectors
+            .split(/(?<!\\),/) // split multiple selectors
             .map((/** @type {string} */ s) => s.split('\\:')) // take care of tailwind conditions
-            .filter((/** @type {string[]} */ s) => s.filter((scomp) => scomp.startsWith('.')).length) // TODO allow elem.cls selectors
+            .filter((/** @type {string[]} */ s) => s.filter((scomp) => scomp.split(/\s+/).pop().startsWith('.')).length) // TODO allow elem.cls selectors
 
         for (const selector of selectors) {
             const classSelectors = selector.map((scomp) =>
-                scomp.slice(scomp.startsWith('.') ? 1 : 0)  // cut class indicator
-                    .split(':'))                            // take care of pseudo classes
+                scomp
+                    .split(/\s+[>~+]/)[0] // only parent selector part
+                    .split(/(^|\s+)\./).pop()    // ignore heritage
+                    .split(/~s+/)[0]        // ignore children
+                    .split(/(?=\S):/)                         // take care of pseudo classes
+            ).filter(Boolean)
 
             /** @type string[] */
             let scopes = []
@@ -74,11 +79,15 @@ function updateClassProps() {
             const importantProperties = scopedNames(props.filter((p) => r.style.getPropertyPriority(p) === 'important'))
 
             const unescaped = unescapeClass(cls)
-            newClassProps[unescaped] = { properties, importantProperties }
+            newClassProps[unescaped] = { properties, importantProperties, selector: r.selectorText, rule: r.cssText }
         }
     }
 
     return newClassProps
+}
+
+function createClass(selector: string) {
+    console.log("Creating class", selector)
 }
 
 let classesUpdated = true
@@ -147,6 +156,7 @@ function mergeInternal(str: Array<string>, el: HTMLElement | SVGElement | undefi
         const [_, ...usedTags] = path
 
         if (!props || !props.properties.length) {
+            // TODO createClass(selector)
             dbg("Tag class", c)
             tags.push(c)
             result.unshift(c)
@@ -334,6 +344,19 @@ const augmentFns = (el: HTMLElement | SVGElement) => {
     return [proxy, updateAfter]
 }
 
+function initElement(el : HTMLElement) {
+    if( el.nodeName === 'style' ) {
+        console.log("Loading style", el)
+        classProps = {
+            ...classProps,
+            ...updateClassProps((el as HTMLStyleElement).sheet!)
+        }
+    } else if( el.nodeName === 'script' ) {
+        // ignore
+    } else {
+        augmentClassList(el)
+    }
+}
 function augmentClassList(el: HTMLElement) {
     const classList = el.classList
     if( 'rawValue' in classList ) return
@@ -378,7 +401,7 @@ function hookPrototype() {
     const htmlDestroy = hookElement(HTMLElement.prototype)
     const svgDestroy = hookElement(SVGElement.prototype)
 
-    forEachElement(augmentClassList)
+    forEachElement(initElement)
 
     return () => {
         destructors.forEach((d) => d?.destroy())
@@ -387,5 +410,9 @@ function hookPrototype() {
     }
 }
 
-globalThis.unhook = hookPrototype()
+window.addEventListener('load', () => {
+    console.log("LOAD")
+    globalThis.unhook = hookPrototype()
+    console.log(classProps)
+})
 console.log("LOADED ClassOrder!")
